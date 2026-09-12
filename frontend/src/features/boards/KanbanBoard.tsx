@@ -9,6 +9,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
+import { AnimatePresence, motion } from 'framer-motion';
 import { KanbanColumn } from '@/features/boards/KanbanColumn';
 import { TaskCard } from '@/features/boards/TaskCard';
 import { useBoardStore } from '@/stores/boardStore';
@@ -16,6 +17,7 @@ import type { Task, TaskStatus } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { fadeUp } from '@/lib/motion';
 
 const COLUMNS: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'DONE'];
 
@@ -102,9 +104,9 @@ export function KanbanBoard() {
 
   if (loading) {
     return (
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-3 lg:grid-cols-3">
         {COLUMNS.map((c) => (
-          <Skeleton key={c} className="h-[420px]" />
+          <Skeleton key={c} className="h-[420px] rounded-2xl" />
         ))}
       </div>
     );
@@ -112,32 +114,47 @@ export function KanbanBoard() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="font-display text-2xl font-semibold">{board?.name ?? 'Board'}</h1>
-        <p className="text-sm text-slate-500">Drag tasks between columns to update status.</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-brand-700/80 dark:text-brand-300/80">
+            Board
+          </p>
+          <h1 className="font-display text-2xl font-semibold tracking-tight md:text-3xl">
+            {board?.name ?? 'Board'}
+          </h1>
+        </div>
+        <p className="text-sm text-slate-500">{tasks.length} tasks · drag to move</p>
       </div>
 
-      {draftStatus ? (
-        <div className="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
-          <div className="min-w-[240px] flex-1">
-            <Input
-              label={`New task in ${draftStatus.replace('_', ' ')}`}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void submitCreate();
-              }}
-              autoFocus
-            />
-          </div>
-          <Button loading={creating} onClick={() => void submitCreate()}>
-            Add
-          </Button>
-          <Button variant="secondary" onClick={() => setDraftStatus(null)}>
-            Cancel
-          </Button>
-        </div>
-      ) : null}
+      <AnimatePresence>
+        {draftStatus ? (
+          <motion.div
+            variants={fadeUp}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200/80 bg-white p-3 dark:border-slate-800 dark:bg-slate-900"
+          >
+            <div className="min-w-[220px] flex-1">
+              <Input
+                label={`New task · ${draftStatus.replace('_', ' ')}`}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void submitCreate();
+                }}
+                autoFocus
+              />
+            </div>
+            <Button loading={creating} onClick={() => void submitCreate()}>
+              Add
+            </Button>
+            <Button variant="secondary" onClick={() => setDraftStatus(null)}>
+              Cancel
+            </Button>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
       <DndContext
         sensors={sensors}
@@ -145,7 +162,10 @@ export function KanbanBoard() {
         onDragStart={onDragStart}
         onDragEnd={(e) => void onDragEnd(e)}
       >
-        <div className="grid gap-4 lg:grid-cols-3" data-testid="kanban-board">
+        <div
+          className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2 lg:grid lg:grid-cols-3 lg:overflow-visible lg:pb-0"
+          data-testid="kanban-board"
+        >
           {COLUMNS.map((status) => (
             <KanbanColumn
               key={status}

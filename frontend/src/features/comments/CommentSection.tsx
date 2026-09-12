@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Send, Trash2 } from 'lucide-react';
+import { Pencil, Send, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Textarea';
 import * as commentService from '@/services/comment.service';
@@ -8,13 +8,20 @@ import { asUserRef, normalizeList } from '@/utils/normalize';
 import { formatRelativeTime } from '@/utils/format';
 import { Avatar } from '@/components/ui/Avatar';
 import { useAuthStore } from '@/stores/authStore';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { enqueueOfflineMutation } from '@/lib/offlineQueue';
+import { useUiStore } from '@/stores/uiStore';
 
 export function CommentSection({ taskId }: { taskId: string }) {
   const user = useAuthStore((s) => s.user);
+  const online = useOnlineStatus();
+  const pushToast = useUiStore((s) => s.pushToast);
   const [comments, setComments] = useState<Comment[]>([]);
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -34,14 +41,30 @@ export function CommentSection({ taskId }: { taskId: string }) {
 
   const submit = async () => {
     if (!content.trim()) return;
+    const text = content.trim();
+    if (!online) {
+      enqueueOfflineMutation({ type: 'createComment', taskId, content: text });
+      setContent('');
+      pushToast('Comment queued offline', 'info');
+      return;
+    }
     setSending(true);
     try {
-      const created = await commentService.createComment(taskId, content.trim());
+      const created = await commentService.createComment(taskId, text);
       setComments((prev) => [...prev, ...normalizeList([created as Comment & { _id?: string }])]);
       setContent('');
     } finally {
       setSending(false);
     }
+  };
+
+  const saveEdit = async (id: string) => {
+    if (!editContent.trim()) return;
+    const updated = await commentService.updateComment(id, editContent.trim());
+    setComments((prev) =>
+      prev.map((c) => (c.id === id ? normalizeList([updated as Comment & { _id?: string }])[0] : c)),
+    );
+    setEditingId(null);
   };
 
   const remove = async (id: string) => {
@@ -67,18 +90,44 @@ export function CommentSection({ taskId }: { taskId: string }) {
                       {formatRelativeTime(c.createdAt)}
                     </span>
                     {user && author.id === user.id ? (
-                      <button
-                        type="button"
-                        className="text-slate-400 hover:text-red-500"
-                        onClick={() => void remove(c.id)}
-                        aria-label="Delete comment"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          className="text-slate-400 hover:text-slate-600"
+                          onClick={() => {
+                            setEditingId(c.id);
+                            setEditContent(c.content);
+                          }}
+                          aria-label="Edit comment"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          className="text-slate-400 hover:text-red-500"
+                          onClick={() => void remove(c.id)}
+                          aria-label="Delete comment"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </>
                     ) : null}
                   </div>
                 </div>
-                <p className="mt-1 text-sm">{c.content}</p>
+                {editingId === c.id ? (
+                  <div className="mt-2 space-y-2">
+                    <Textarea
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      rows={2}
+                    />
+                    <Button size="sm" onClick={() => void saveEdit(c.id)}>
+                      Save
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="mt-1 text-sm">{c.content}</p>
+                )}
               </div>
             </li>
           );
@@ -89,7 +138,7 @@ export function CommentSection({ taskId }: { taskId: string }) {
           label="Add a comment"
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="Share an update…"
+          placeholder={online ? 'Share an update…' : 'Offline — queued on send'}
         />
         <Button size="sm" loading={sending} onClick={() => void submit()}>
           <Send className="h-3.5 w-3.5" />

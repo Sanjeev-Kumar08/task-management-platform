@@ -1,16 +1,19 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { loginSchema, type LoginFormValues } from '@/lib/validators';
 import { useAuthStore } from '@/stores/authStore';
+import { STORAGE_KEYS, writeJson } from '@/utils/storage';
 
 export function LoginForm() {
   const login = useAuthStore((s) => s.login);
   const loading = useAuthStore((s) => s.loading);
   const storeError = useAuthStore((s) => s.error);
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const invite = params.get('invite');
   const {
     register,
     handleSubmit,
@@ -23,11 +26,20 @@ export function LoginForm() {
   const onSubmit = handleSubmit(async (values) => {
     try {
       await login(values.email, values.password);
-      navigate('/dashboard');
+      if (invite) {
+        writeJson(STORAGE_KEYS.pendingInviteToken, invite);
+        navigate(`/invite/${invite}`);
+      } else {
+        navigate('/dashboard');
+      }
     } catch {
       // error in store
     }
   });
+
+  const registerTo = invite
+    ? `/register?invite=${encodeURIComponent(invite)}`
+    : '/register';
 
   return (
     <form onSubmit={onSubmit} className="space-y-4" noValidate>
@@ -54,9 +66,17 @@ export function LoginForm() {
         Sign in
       </Button>
       <p className="text-center text-sm text-slate-500">
+        <Link
+          to="/forgot-password"
+          className="font-medium text-brand-700 hover:underline dark:text-brand-300"
+        >
+          Forgot password?
+        </Link>
+      </p>
+      <p className="text-center text-sm text-slate-500">
         No account?{' '}
         <Link
-          to="/register"
+          to={registerTo}
           className="font-medium text-brand-700 hover:underline dark:text-brand-300"
         >
           Create one

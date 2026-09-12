@@ -24,9 +24,9 @@ export function BoardPage() {
   useBoardSocket(boardId);
 
   return (
-    <div className="space-y-3">
+    <div>
       {error ? (
-        <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+        <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
           {error}
         </p>
       ) : null}

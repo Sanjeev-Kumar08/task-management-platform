@@ -9,11 +9,24 @@ export interface ToastItem {
   type: 'error' | 'success' | 'info';
 }
 
+export interface ConfirmOptions {
+  id: string;
+  title: string;
+  description: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  tone?: 'danger' | 'default';
+  resolve: (confirmed: boolean) => void;
+}
+
+export type ConfirmRequest = Omit<ConfirmOptions, 'id' | 'resolve'>;
+
 interface UiState {
   theme: Theme;
   sidebarCollapsed: boolean;
   toasts: ToastItem[];
   searchOpen: boolean;
+  confirm: ConfirmOptions | null;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
   toggleSidebar: () => void;
@@ -21,6 +34,8 @@ interface UiState {
   pushToast: (message: string, type?: ToastItem['type']) => void;
   dismissToast: (id: string) => void;
   setSearchOpen: (open: boolean) => void;
+  requestConfirm: (options: ConfirmRequest) => Promise<boolean>;
+  resolveConfirm: (confirmed: boolean) => void;
 }
 
 function applyTheme(theme: Theme): void {
@@ -47,6 +62,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   sidebarCollapsed: false,
   toasts: [],
   searchOpen: false,
+  confirm: null,
 
   setTheme: (theme) => {
     applyTheme(theme);
@@ -70,4 +86,29 @@ export const useUiStore = create<UiState>((set, get) => ({
   dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
 
   setSearchOpen: (open) => set({ searchOpen: open }),
+
+  requestConfirm: (options) =>
+    new Promise<boolean>((resolve) => {
+      const existing = get().confirm;
+      if (existing) existing.resolve(false);
+      set({
+        confirm: {
+          id: `confirm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          ...options,
+          resolve,
+        },
+      });
+    }),
+
+  resolveConfirm: (confirmed) => {
+    const current = get().confirm;
+    if (!current) return;
+    set({ confirm: null });
+    current.resolve(confirmed);
+  },
 }));
+
+/** Promise-based themed confirm — replaces window.confirm */
+export function confirmDialog(options: ConfirmRequest): Promise<boolean> {
+  return useUiStore.getState().requestConfirm(options);
+}

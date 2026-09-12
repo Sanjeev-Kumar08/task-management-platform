@@ -2,6 +2,8 @@ export type WorkspaceRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE';
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 export type ChannelType = 'PUBLIC' | 'PRIVATE';
+export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'REVOKED';
+export type PlanId = 'free' | 'pro' | 'business';
 
 export interface User {
   id: string;
@@ -15,18 +17,67 @@ export interface User {
 }
 
 export interface WorkspaceMember {
-  userId: string;
+  userId: string | User;
   role: WorkspaceRole;
+  joinedAt?: string;
 }
 
 export interface Workspace {
   id: string;
   name: string;
   slug: string;
+  description?: string;
+  avatar?: string | null;
   ownerId: string;
   members: WorkspaceMember[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Invitation {
+  id: string;
+  email: string;
+  role: Exclude<WorkspaceRole, 'OWNER'>;
+  status: InvitationStatus;
+  expiresAt: string;
+  invitedBy?: string;
+  createdAt: string;
+  inviteUrl?: string;
+}
+
+export interface InvitationPreview {
+  email: string;
+  role: Exclude<WorkspaceRole, 'OWNER'>;
+  expiresAt: string;
+  workspace: { id: string; name: string; slug: string } | null;
+}
+
+export interface AuthSession {
+  sessionId: string;
+  createdAt: string;
+  userAgent?: string;
+}
+
+export interface Plan {
+  id: PlanId;
+  name: string;
+  priceMonthly: number;
+  description: string;
+  limits: {
+    maxWorkspaces: number;
+    maxMembersPerWorkspace: number;
+    maxProjectsPerWorkspace: number;
+    maxStorageBytes: number;
+    maxTasksPerWorkspace: number;
+  };
+}
+
+export interface SubscriptionInfo {
+  planId: PlanId;
+  status: string;
+  currentPeriodEnd?: string | null;
+  cancelAtPeriodEnd?: boolean;
+  stripeCustomerId?: string | null;
 }
 
 export interface Project {
@@ -34,6 +85,7 @@ export interface Project {
   workspaceId: string;
   name: string;
   description: string;
+  archived?: boolean;
   createdBy: string;
   members: string[];
   createdAt: string;
@@ -61,7 +113,10 @@ export interface TaskAttachment {
   originalName: string;
   mimeType: string;
   size: number;
-  path: string;
+  path: string | null;
+  key?: string | null;
+  bucket?: string | null;
+  provider?: 'local' | 's3';
   uploadedAt: string;
 }
 
@@ -76,6 +131,7 @@ export interface Task {
   position: number;
   assigneeId: string | null;
   dueDate: string | null;
+  labels?: string[];
   attachments: TaskAttachment[];
   createdBy: string;
   createdAt: string;
@@ -96,6 +152,8 @@ export interface Channel {
   workspaceId: string;
   name: string;
   type: ChannelType;
+  archived?: boolean;
+  unreadCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -106,8 +164,16 @@ export interface Message {
   channelId: string;
   senderId: string | User;
   content: string;
+  parentMessageId?: string | null;
+  editedAt?: string | null;
+  deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface MessagePage {
+  items: Message[];
+  nextCursor: string | null;
 }
 
 export interface Notification {
@@ -118,6 +184,7 @@ export interface Notification {
   message: string;
   entityType: string | null;
   entityId: string | null;
+  actionUrl?: string | null;
   read: boolean;
   createdAt: string;
   updatedAt: string;

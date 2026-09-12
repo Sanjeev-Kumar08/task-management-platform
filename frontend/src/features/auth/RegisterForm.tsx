@@ -1,33 +1,44 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { registerSchema, type RegisterFormValues } from '@/lib/validators';
 import { useAuthStore } from '@/stores/authStore';
+import { STORAGE_KEYS, writeJson } from '@/utils/storage';
 
 export function RegisterForm() {
   const registerUser = useAuthStore((s) => s.register);
   const loading = useAuthStore((s) => s.loading);
   const storeError = useAuthStore((s) => s.error);
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const invite = params.get('invite');
+  const emailPrefill = params.get('email') ?? '';
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: '', email: '', password: '' },
+    defaultValues: { name: '', email: emailPrefill, password: '' },
   });
 
   const onSubmit = handleSubmit(async (values) => {
     try {
       await registerUser(values.name, values.email, values.password);
-      navigate('/dashboard');
+      if (invite) {
+        writeJson(STORAGE_KEYS.pendingInviteToken, invite);
+        navigate(`/invite/${invite}`);
+      } else {
+        navigate('/dashboard');
+      }
     } catch {
       // error in store
     }
   });
+
+  const loginTo = invite ? `/login?invite=${encodeURIComponent(invite)}` : '/login';
 
   return (
     <form onSubmit={onSubmit} className="space-y-4" noValidate>
@@ -57,7 +68,7 @@ export function RegisterForm() {
       <p className="text-center text-sm text-slate-500">
         Already have an account?{' '}
         <Link
-          to="/login"
+          to={loginTo}
           className="font-medium text-brand-700 hover:underline dark:text-brand-300"
         >
           Sign in

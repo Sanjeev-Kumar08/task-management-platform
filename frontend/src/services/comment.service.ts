@@ -13,6 +13,10 @@ export function createComment(taskId: string, content: string) {
   });
 }
 
+export function updateComment(id: string, content: string) {
+  return request<Comment>({ method: 'PATCH', url: `/api/comments/${id}`, data: { content } });
+}
+
 export function deleteComment(id: string) {
   return request<null>({ method: 'DELETE', url: `/api/comments/${id}` });
 }

@@ -1,5 +1,5 @@
 import { request } from '@/lib/api';
-import type { User } from '@/types';
+import type { AuthSession, User } from '@/types';
 import { normalizeId } from '@/utils/normalize';
 
 export interface AuthPayload {
@@ -40,4 +40,31 @@ export async function updateProfile(input: {
 }): Promise<User> {
   const data = await request<User>({ method: 'PATCH', url: '/api/auth/profile', data: input });
   return normalizeId(data as User & { _id?: string });
+}
+
+export async function forgotPassword(email: string): Promise<void> {
+  await request<null>({ method: 'POST', url: '/api/auth/forgot-password', data: { email } });
+}
+
+export async function resetPassword(input: { token: string; password: string }): Promise<void> {
+  await request<null>({ method: 'POST', url: '/api/auth/reset-password', data: input });
+}
+
+export async function changePassword(input: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<void> {
+  await request<null>({ method: 'POST', url: '/api/auth/change-password', data: input });
+}
+
+export async function listSessions(): Promise<AuthSession[]> {
+  return request<AuthSession[]>({ method: 'GET', url: '/api/auth/sessions' });
+}
+
+export async function revokeSession(sessionId: string): Promise<void> {
+  await request<null>({ method: 'DELETE', url: `/api/auth/sessions/${sessionId}` });
+}
+
+export async function deleteAccount(): Promise<void> {
+  await request<null>({ method: 'DELETE', url: '/api/auth/account' });
 }

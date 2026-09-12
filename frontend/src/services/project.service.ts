@@ -1,8 +1,18 @@
 import { request } from '@/lib/api';
 import type { Project } from '@/types';
 
-export function listProjects(workspaceId: string) {
-  return request<Project[]>({ method: 'GET', url: `/api/workspaces/${workspaceId}/projects` });
+export function listProjects(
+  workspaceId: string,
+  opts?: { q?: string; archived?: boolean },
+) {
+  return request<Project[]>({
+    method: 'GET',
+    url: `/api/workspaces/${workspaceId}/projects`,
+    params: {
+      q: opts?.q,
+      archived: opts?.archived === undefined ? undefined : String(opts.archived),
+    },
+  });
 }
 
 export function getProject(id: string) {
@@ -17,7 +27,10 @@ export function createProject(workspaceId: string, input: { name: string; descri
   });
 }
 
-export function updateProject(id: string, input: { name?: string; description?: string }) {
+export function updateProject(
+  id: string,
+  input: { name?: string; description?: string; archived?: boolean },
+) {
   return request<Project>({ method: 'PATCH', url: `/api/projects/${id}`, data: input });
 }
 

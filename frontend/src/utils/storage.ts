@@ -29,4 +29,6 @@ export const STORAGE_KEYS = {
   accessToken: 'workspace.accessToken',
   boardCache: (boardId: string) => `workspace.board.${boardId}`,
   lastWorkspace: 'workspace.lastWorkspaceId',
+  pendingInviteToken: 'workspace.pendingInviteToken',
+  offlineQueue: 'workspace.offlineQueue',
 } as const;

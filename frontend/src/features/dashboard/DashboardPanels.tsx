@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { formatRelativeTime } from '@/utils/format';
 import type { AuditLog, Project } from '@/types';
 import { EmptyState } from '@/components/common/EmptyState';
 import { FolderKanban, Activity } from 'lucide-react';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { staggerContainer, staggerItem } from '@/lib/motion';
 
 export function RecentProjects({ projects, loading }: { projects: Project[]; loading: boolean }) {
   if (loading) {
@@ -27,15 +29,20 @@ export function RecentProjects({ projects, loading }: { projects: Project[]; loa
   }
 
   return (
-    <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+    <motion.ul
+      className="divide-y divide-slate-100 dark:divide-slate-800/80"
+      variants={staggerContainer}
+      initial="initial"
+      animate="animate"
+    >
       {projects.slice(0, 6).map((p) => (
-        <li key={p.id}>
+        <motion.li key={p.id} variants={staggerItem}>
           <Link
             to={`/projects/${p.id}`}
-            className="flex items-start justify-between gap-3 py-3 transition hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
+            className="-mx-2 flex items-start justify-between gap-3 rounded-xl px-2 py-3 transition hover:bg-slate-50/90 dark:hover:bg-slate-800/40"
           >
-            <div>
-              <p className="font-medium">{p.name}</p>
+            <div className="min-w-0">
+              <p className="font-medium tracking-tight">{p.name}</p>
               <p className="mt-0.5 line-clamp-1 text-sm text-slate-500">
                 {p.description || 'No description'}
               </p>
@@ -44,9 +51,9 @@ export function RecentProjects({ projects, loading }: { projects: Project[]; loa
               {formatRelativeTime(p.updatedAt)}
             </span>
           </Link>
-        </li>
+        </motion.li>
       ))}
-    </ul>
+    </motion.ul>
   );
 }
 
@@ -72,18 +79,29 @@ export function ActivityFeed({ activity, loading }: { activity: AuditLog[]; load
   }
 
   return (
-    <ul className="space-y-3">
+    <motion.ul
+      className="space-y-1"
+      variants={staggerContainer}
+      initial="initial"
+      animate="animate"
+    >
       {activity.slice(0, 10).map((a) => (
-        <li key={a.id} className="flex items-start gap-3 text-sm">
+        <motion.li
+          key={a.id}
+          variants={staggerItem}
+          className="flex items-start gap-3 rounded-xl px-2 py-2.5 text-sm"
+        >
           <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-500" />
-          <div>
-            <p className="font-medium">{a.action.replaceAll('_', ' ')}</p>
+          <div className="min-w-0">
+            <p className="font-medium tracking-tight capitalize">
+              {a.action.replaceAll('_', ' ').toLowerCase()}
+            </p>
             <p className="text-xs text-slate-500">
               {a.entity} · {formatRelativeTime(a.createdAt)}
             </p>
           </div>
-        </li>
+        </motion.li>
       ))}
-    </ul>
+    </motion.ul>
   );
 }

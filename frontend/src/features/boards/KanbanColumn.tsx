@@ -11,6 +11,12 @@ const titles: Record<TaskStatus, string> = {
   DONE: 'Done',
 };
 
+const accents: Record<TaskStatus, string> = {
+  TODO: 'bg-slate-400',
+  IN_PROGRESS: 'bg-sky-500',
+  DONE: 'bg-emerald-500',
+};
+
 export function KanbanColumn({
   status,
   tasks,
@@ -28,30 +34,39 @@ export function KanbanColumn({
     <div
       ref={setNodeRef}
       className={cn(
-        'flex min-h-[420px] flex-col rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-950/40',
-        isOver && 'border-brand-400 bg-brand-50/40 dark:bg-brand-950/20',
+        'flex w-[280px] shrink-0 flex-col rounded-2xl bg-slate-100/70 p-2.5 transition-[background-color,box-shadow] duration-200 dark:bg-slate-900/50 lg:w-auto',
+        isOver && 'bg-brand-50/80 ring-2 ring-brand-400/40 dark:bg-brand-950/30',
       )}
       data-testid={`column-${status}`}
     >
-      <div className="mb-3 flex items-center justify-between px-1">
-        <div>
-          <h3 className="text-sm font-semibold">{titles[status]}</h3>
-          <p className="text-xs text-slate-500">{tasks.length} tasks</p>
+      <div className="mb-2.5 flex items-center justify-between gap-2 px-1.5 py-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className={cn('h-2 w-2 shrink-0 rounded-full', accents[status])} />
+          <h3 className="truncate text-sm font-semibold tracking-tight">{titles[status]}</h3>
+          <span className="rounded-md bg-white/80 px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-slate-500 dark:bg-slate-800/80">
+            {tasks.length}
+          </span>
         </div>
         <button
           type="button"
           onClick={() => onAdd(status)}
-          className="rounded-md p-1.5 text-slate-500 hover:bg-white dark:hover:bg-slate-800"
+          className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-100"
           aria-label={`Add task to ${titles[status]}`}
         >
           <Plus className="h-4 w-4" />
         </button>
       </div>
+
       <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-        <div className="flex flex-1 flex-col gap-2">
+        <div className="flex min-h-[360px] flex-1 flex-col gap-2">
           {tasks.map((task) => (
             <TaskCard key={task.id} task={task} onOpen={onOpenTask} />
           ))}
+          {!tasks.length ? (
+            <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-slate-200/80 px-3 py-8 text-center text-xs text-slate-400 dark:border-slate-700/80">
+              Drop tasks here
+            </div>
+          ) : null}
         </div>
       </SortableContext>
     </div>

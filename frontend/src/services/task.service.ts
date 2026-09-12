@@ -18,6 +18,7 @@ export function createTask(
     priority?: TaskPriority;
     assigneeId?: string | null;
     dueDate?: string | null;
+    labels?: string[];
   },
 ) {
   return request<Task>({ method: 'POST', url: `/api/boards/${boardId}/tasks`, data: input });
@@ -33,6 +34,7 @@ export function updateTask(
     assigneeId: string | null;
     dueDate: string | null;
     position: number;
+    labels: string[];
   }>,
 ) {
   return request<Task>({ method: 'PATCH', url: `/api/tasks/${id}`, data: input });

@@ -18,10 +18,13 @@ export function MessagesPage() {
   if (loading && !current) return <LoadingPage />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div>
-        <h1 className="font-display text-2xl font-semibold">Messages</h1>
-        <p className="text-sm text-slate-500">Workspace channels and real-time chat.</p>
+        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-brand-700/80 dark:text-brand-300/80">
+          Workspace
+        </p>
+        <h1 className="font-display text-2xl font-semibold tracking-tight md:text-3xl">Messages</h1>
+        <p className="mt-1 text-sm text-slate-500">Workspace channels and real-time chat.</p>
       </div>
       <MessagesPanel workspaceId={workspaceId} />
     </div>
