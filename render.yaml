@@ -1,0 +1,62 @@
+# WorkSpace API + Redis on Render (free tier).
+# MongoDB: set MONGODB_URI to a MongoDB Atlas connection string (M0 free cluster).
+# After first deploy, set CLIENT_URL to your Vercel URL (comma-separated origins OK).
+
+services:
+  - type: keyvalue
+    name: workspace-redis
+    plan: free
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: everywhere
+    maxmemoryPolicy: noeviction
+
+  - type: web
+    name: workspace-api
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: '4000'
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: COOKIE_SECURE
+        value: 'true'
+      - key: LOG_LEVEL
+        value: info
+      - key: EMAIL_PROVIDER
+        value: console
+      - key: EMAIL_FROM
+        value: WorkSpace <noreply@workspace.app>
+      - key: STORAGE_PROVIDER
+        value: local
+      - key: ERROR_TRACKER
+        value: console
+      - key: UPLOAD_DIR
+        value: uploads
+      - key: MAX_FILE_SIZE
+        value: '5242880'
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: workspace-redis
+          property: connectionString
+      - key: MONGODB_URI
+        sync: false
+      - key: CLIENT_URL
+        sync: false
+      - key: APP_URL
+        sync: false

@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { getPrimaryClientUrl } from '../../config/cors.js';
 import { env } from '../../config/env.js';
 import { ForbiddenError, NotFoundError, ValidationError } from '../../utils/errors.js';
 import { User } from '../users/user.model.js';
@@ -90,8 +91,8 @@ export const billingService = {
       mode: 'subscription',
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${env.CLIENT_URL}/settings/billing?success=1`,
-      cancel_url: `${env.CLIENT_URL}/settings/billing?canceled=1`,
+      success_url: `${getPrimaryClientUrl()}/settings/billing?success=1`,
+      cancel_url: `${getPrimaryClientUrl()}/settings/billing?canceled=1`,
       metadata: { userId, planId },
       subscription_data: { metadata: { userId, planId } },
     });
@@ -105,7 +106,7 @@ export const billingService = {
     const customerId = await this.ensureCustomer(userId);
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${env.CLIENT_URL}/settings/billing`,
+      return_url: `${getPrimaryClientUrl()}/settings/billing`,
     });
     return { url: session.url };
   },
