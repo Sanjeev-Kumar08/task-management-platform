@@ -4,10 +4,12 @@
 
 :root {
   color-scheme: light;
+  --app-ring: rgb(47 147 115 / 0.28);
 }
 
 html.dark {
   color-scheme: dark;
+  --app-ring: rgb(74 175 140 / 0.28);
 }
 
 html,
@@ -18,7 +20,38 @@ body,
 
 body {
   margin: 0;
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: 'Figtree', 'DM Sans', system-ui, sans-serif;
+  letter-spacing: -0.011em;
+  background-color: theme('colors.surface.DEFAULT');
+}
+
+html.dark body {
+  background-color: theme('colors.surface.dark');
+}
+
+/* Soft atmospheric mesh — light only, no glitter */
+.app-mesh {
+  background:
+    radial-gradient(ellipse 80% 55% at 12% -10%, rgb(174 224 201 / 0.45), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 92% 8%, rgb(200 210 220 / 0.35), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 50% 100%, rgb(215 239 227 / 0.3), transparent 55%),
+    theme('colors.surface.DEFAULT');
+}
+
+html.dark .app-mesh {
+  background:
+    radial-gradient(ellipse 70% 50% at 10% -5%, rgb(34 118 92 / 0.22), transparent 50%),
+    radial-gradient(ellipse 60% 45% at 95% 10%, rgb(49 61 74 / 0.35), transparent 50%),
+    radial-gradient(ellipse 50% 40% at 50% 110%, rgb(20 62 52 / 0.25), transparent 55%),
+    theme('colors.surface.dark');
+}
+
+.app-panel {
+  @apply rounded-2xl border border-slate-200/80 bg-white/90 shadow-soft dark:border-slate-800/80 dark:bg-slate-950/50;
+}
+
+.app-panel-muted {
+  @apply rounded-2xl border border-slate-200/60 bg-slate-50/70 dark:border-slate-800/60 dark:bg-slate-950/30;
 }
 
 ::-webkit-scrollbar {
@@ -26,11 +59,40 @@ body {
   height: 8px;
 }
 
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 ::-webkit-scrollbar-thumb {
-  background: rgb(148 163 184 / 0.55);
+  background: rgb(148 163 184 / 0.45);
   border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
 html.dark ::-webkit-scrollbar-thumb {
-  background: rgb(71 85 105 / 0.8);
+  background: rgb(71 85 105 / 0.7);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+::selection {
+  background: rgb(174 224 201 / 0.55);
+  color: theme('colors.brand.900');
+}
+
+html.dark ::selection {
+  background: rgb(34 118 92 / 0.45);
+  color: theme('colors.brand.100');
+}
+
+/* Prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -20,14 +20,14 @@ export function Avatar({ name, src, size = 'md', className }: AvatarProps) {
       <img
         src={src}
         alt={name}
-        className={cn('rounded-full object-cover', sizes[size], className)}
+        className={cn('rounded-full object-cover ring-2 ring-white dark:ring-slate-900', sizes[size], className)}
       />
     );
   }
   return (
     <div
       className={cn(
-        'inline-flex items-center justify-center rounded-full bg-brand-100 font-semibold text-brand-800 dark:bg-brand-900/50 dark:text-brand-200',
+        'inline-flex items-center justify-center rounded-full bg-gradient-to-br from-brand-100 to-brand-200 font-semibold text-brand-800 ring-2 ring-white dark:from-brand-900/60 dark:to-brand-800/40 dark:text-brand-200 dark:ring-slate-900',
         sizes[size],
         className,
       )}

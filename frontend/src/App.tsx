@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { AppRouter } from '@/app/AppRouter';
 import { ErrorFallback } from '@/components/common/ErrorFallback';
+import { ConfirmDialogHost } from '@/components/ui/ConfirmDialog';
 import { setApiToastHandler } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useUiStore } from '@/stores/uiStore';
@@ -22,6 +23,7 @@ export default function App() {
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => window.location.assign('/')}>
       <AppRouter />
+      <ConfirmDialogHost />
     </ErrorBoundary>
   );
 }
