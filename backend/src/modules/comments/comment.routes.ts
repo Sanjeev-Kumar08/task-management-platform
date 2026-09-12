@@ -12,4 +12,5 @@ taskCommentRoutes.use(authenticate);
 
 taskCommentRoutes.get('/', commentController.list);
 taskCommentRoutes.post('/', validate(createCommentSchema), commentController.create);
+commentRoutes.patch('/:id', validate(createCommentSchema), commentController.update);
 commentRoutes.delete('/:id', commentController.remove);

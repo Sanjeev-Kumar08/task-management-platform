@@ -8,6 +8,7 @@ export const createTaskSchema = z.object({
   priority: z.enum(TASK_PRIORITIES).optional(),
   assigneeId: z.string().nullable().optional(),
   dueDate: z.string().datetime().nullable().optional(),
+  labels: z.array(z.string().max(40)).max(20).optional(),
 });
 
 export const updateTaskSchema = z.object({
@@ -18,6 +19,7 @@ export const updateTaskSchema = z.object({
   assigneeId: z.string().nullable().optional(),
   dueDate: z.string().datetime().nullable().optional(),
   position: z.number().optional(),
+  labels: z.array(z.string().max(40)).max(20).optional(),
 });
 
 export const moveTaskSchema = z.object({

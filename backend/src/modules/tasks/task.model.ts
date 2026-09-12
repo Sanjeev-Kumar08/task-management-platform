@@ -7,7 +7,10 @@ const attachmentSchema = new Schema(
     originalName: { type: String, required: true },
     mimeType: { type: String, required: true },
     size: { type: Number, required: true },
-    path: { type: String, required: true },
+    path: { type: String, default: null },
+    key: { type: String, default: null },
+    bucket: { type: String, default: null },
+    provider: { type: String, enum: ['local', 's3'], default: 'local' },
     uploadedAt: { type: Date, default: Date.now },
   },
   { _id: true },
@@ -24,16 +27,20 @@ const taskSchema = new Schema(
     position: { type: Number, required: true, default: 0 },
     assigneeId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     dueDate: { type: Date, default: null },
+    labels: { type: [String], default: [] },
     attachments: { type: [attachmentSchema], default: [] },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true },
 );
 
-taskSchema.index({ boardId: 1 });
+taskSchema.index({ boardId: 1, status: 1, position: 1 });
 taskSchema.index({ projectId: 1 });
 taskSchema.index({ assigneeId: 1 });
 taskSchema.index({ status: 1 });
+taskSchema.index({ priority: 1 });
+taskSchema.index({ dueDate: 1 });
+taskSchema.index({ labels: 1 });
 taskSchema.index({ title: 'text', description: 'text' });
 
 export type TaskDocument = InferSchemaType<typeof taskSchema> & {

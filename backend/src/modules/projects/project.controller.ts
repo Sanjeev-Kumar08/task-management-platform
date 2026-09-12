@@ -5,7 +5,11 @@ import { sendSuccess } from '../../utils/response.js';
 export const projectController = {
   async list(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await projectService.list(req.user!.id, req.params.workspaceId);
+      const data = await projectService.list(req.user!.id, req.params.workspaceId, {
+        q: typeof req.query.q === 'string' ? req.query.q : undefined,
+        archived:
+          req.query.archived === 'true' ? true : req.query.archived === 'false' ? false : undefined,
+      });
       sendSuccess(res, data);
     } catch (err) {
       next(err);

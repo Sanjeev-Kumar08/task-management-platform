@@ -53,17 +53,22 @@ export const commentService = {
         comment: populated,
       });
 
-    const notifyUserId = task.assigneeId ? String(task.assigneeId) : String(task.createdBy);
-    if (notifyUserId !== userId) {
-      await enqueueNotification({
-        userId: notifyUserId,
-        type: 'COMMENT_ADDED',
-        title: 'New comment',
-        message: `New comment on "${task.title}"`,
-        entityType: 'Task',
-        entityId: taskId,
-      });
-    }
+    const recipients = new Set<string>();
+    if (task.assigneeId) recipients.add(String(task.assigneeId));
+    if (task.createdBy) recipients.add(String(task.createdBy));
+    recipients.delete(userId);
+    await Promise.all(
+      [...recipients].map((recipientId) =>
+        enqueueNotification({
+          userId: recipientId,
+          type: 'COMMENT_ADDED',
+          title: 'New comment',
+          message: `New comment on "${task.title}"`,
+          entityType: 'Task',
+          entityId: taskId,
+        }),
+      ),
+    );
 
     return populated;
   },
@@ -75,5 +80,36 @@ export const commentService = {
       throw new ForbiddenError('Can only delete your own comments');
     }
     await comment.deleteOne();
+  },
+
+  async update(userId: string, id: string, content: string) {
+    const comment = await Comment.findById(id);
+    if (!comment) throw new NotFoundError('Comment not found');
+    if (String(comment.userId) !== userId) {
+      throw new ForbiddenError('Can only edit your own comments');
+    }
+    comment.content = content;
+    await comment.save();
+    const populated = await Comment.findById(comment._id).populate('userId', 'name email avatar');
+    const task = await Task.findById(comment.taskId).lean();
+    if (task) {
+      getIO()
+        ?.to(`board:${String(task.boardId)}`)
+        .emit('comment:updated', {
+          eventId: randomUUID(),
+          comment: populated,
+        });
+    }
+    const project = await Project.findById(task?.projectId).lean();
+    if (project) {
+      await auditService.log({
+        userId,
+        workspaceId: String(project.workspaceId),
+        action: 'COMMENT_UPDATED',
+        entity: 'Comment',
+        entityId: id,
+      });
+    }
+    return populated;
   },
 };

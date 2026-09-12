@@ -1,6 +1,6 @@
 import type { Server as HttpServer } from 'node:http';
 import { Server } from 'socket.io';
-import { env } from '../config/env.js';
+import { corsOriginDelegate } from '../config/cors.js';
 import { verifyAccessToken } from '../modules/auth/token.service.js';
 import { workspaceService } from '../modules/workspaces/workspace.service.js';
 import { Board } from '../modules/boards/board.model.js';
@@ -18,7 +18,7 @@ export function getIO(): Server | null {
 export function initSocket(httpServer: HttpServer): Server {
   io = new Server(httpServer, {
     cors: {
-      origin: env.CLIENT_URL,
+      origin: corsOriginDelegate,
       credentials: true,
     },
   });

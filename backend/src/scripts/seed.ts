@@ -3,12 +3,17 @@ import mongoose from 'mongoose';
 import { config as loadEnv } from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash, randomBytes } from 'node:crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-loadEnv({ path: path.resolve(__dirname, '../../../.env') });
+loadEnv({ path: path.resolve(__dirname, '../../../.env'), override: true });
 loadEnv();
 
-process.env.MONGODB_URI ??= 'mongodb://localhost:27017/workspace';
+process.env.MONGODB_URI ??= 'mongodb://127.0.0.1:27017/workspace?directConnection=true';
+
+function hashToken(token: string) {
+  return createHash('sha256').update(token).digest('hex');
+}
 
 async function seed() {
   await mongoose.connect(process.env.MONGODB_URI!);
@@ -26,6 +31,8 @@ async function seed() {
   const { Channel } = await import('../modules/channels/channel.model.js');
   const { Message } = await import('../modules/messages/message.model.js');
   const { Notification } = await import('../modules/notifications/notification.model.js');
+  const { Invitation } = await import('../modules/invitations/invitation.model.js');
+  const { Subscription } = await import('../modules/billing/subscription.model.js');
 
   const passwordHash = await bcrypt.hash('Password123!', 10);
 
@@ -50,16 +57,31 @@ async function seed() {
     passwordHash,
   });
 
+  await Subscription.create({
+    ownerId: owner._id,
+    planId: 'free',
+    status: 'active',
+  });
+
   const workspace = await Workspace.create({
     name: 'Acme Collaboration',
     slug: 'acme',
+    description: 'Primary product workspace',
     ownerId: owner._id,
     members: [
-      { userId: owner._id, role: 'OWNER' },
-      { userId: admin._id, role: 'ADMIN' },
-      { userId: member._id, role: 'MEMBER' },
-      { userId: viewer._id, role: 'VIEWER' },
+      { userId: owner._id, role: 'OWNER', joinedAt: new Date() },
+      { userId: admin._id, role: 'ADMIN', joinedAt: new Date() },
+      { userId: member._id, role: 'MEMBER', joinedAt: new Date() },
+      { userId: viewer._id, role: 'VIEWER', joinedAt: new Date() },
     ],
+  });
+
+  const workspace2 = await Workspace.create({
+    name: 'Owner Side Project',
+    slug: 'side-project',
+    description: 'Second workspace for switcher demo',
+    ownerId: owner._id,
+    members: [{ userId: owner._id, role: 'OWNER', joinedAt: new Date() }],
   });
 
   const project1 = await Project.create({
@@ -96,6 +118,14 @@ async function seed() {
     ],
   });
 
+  await Project.create({
+    workspaceId: workspace2._id,
+    name: 'Ideas',
+    description: 'Side project ideas',
+    createdBy: owner._id,
+    members: [owner._id],
+  });
+
   const tasks = await Task.insertMany([
     {
       boardId: board1._id,
@@ -107,6 +137,7 @@ async function seed() {
       position: 0,
       assigneeId: member._id,
       createdBy: owner._id,
+      labels: ['launch', 'docs'],
       dueDate: new Date(Date.now() + 3 * 86400000),
     },
     {
@@ -119,6 +150,7 @@ async function seed() {
       position: 0,
       assigneeId: admin._id,
       createdBy: admin._id,
+      labels: ['design'],
     },
     {
       boardId: board1._id,
@@ -130,6 +162,7 @@ async function seed() {
       position: 0,
       assigneeId: owner._id,
       createdBy: owner._id,
+      labels: ['email'],
     },
     {
       boardId: board2._id,
@@ -140,6 +173,7 @@ async function seed() {
       position: 0,
       createdBy: admin._id,
       dueDate: new Date(Date.now() - 86400000),
+      labels: ['security'],
     },
   ]);
 
@@ -154,13 +188,23 @@ async function seed() {
     name: 'general',
     type: 'PUBLIC',
     createdBy: owner._id,
+    memberIds: [owner._id, admin._id, member._id, viewer._id],
+  });
+
+  const rootMsg = await Message.create({
+    workspaceId: workspace._id,
+    channelId: channel._id,
+    senderId: owner._id,
+    content: 'Welcome to Acme Collaboration!',
   });
 
   await Message.create({
     workspaceId: workspace._id,
     channelId: channel._id,
-    senderId: owner._id,
-    content: 'Welcome to Acme Collaboration!',
+    senderId: member._id,
+    content: 'Thanks @DemoOwner — excited to collaborate!',
+    parentMessageId: rootMsg._id,
+    mentions: [owner._id],
   });
 
   await Notification.create({
@@ -173,12 +217,27 @@ async function seed() {
     read: false,
   });
 
+  const inviteToken = randomBytes(24).toString('base64url');
+  await Invitation.create({
+    workspaceId: workspace._id,
+    email: 'newhire@example.com',
+    role: 'MEMBER',
+    tokenHash: hashToken(inviteToken),
+    expiresAt: new Date(Date.now() + 7 * 86400000),
+    status: 'PENDING',
+    invitedBy: owner._id,
+  });
+
   // eslint-disable-next-line no-console
   console.log('Seed complete');
   // eslint-disable-next-line no-console
   console.log('Demo credentials: owner@demo.com / Password123!');
   // eslint-disable-next-line no-console
   console.log(`Workspace: ${workspace.slug} (${workspace._id})`);
+  // eslint-disable-next-line no-console
+  console.log(`Second workspace: ${workspace2.slug} (${workspace2._id})`);
+  // eslint-disable-next-line no-console
+  console.log(`Pending invite token (dev): ${inviteToken}`);
   // eslint-disable-next-line no-console
   console.log(`Board: ${board1._id}`);
 

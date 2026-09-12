@@ -16,6 +16,7 @@ import type {
 } from './task.validation.js';
 import type { WorkspaceRole } from '../../types/index.js';
 import { ROLE_RANK } from '../../types/index.js';
+import { entitlementsService } from '../entitlements/entitlements.service.js';
 
 async function resolveTaskContext(boardId: string) {
   const board = await Board.findById(boardId).lean();
@@ -38,6 +39,29 @@ function emitBoard(event: string, boardId: string, payload: unknown) {
   getIO()?.to(`board:${boardId}`).emit(event, payload);
 }
 
+async function notifyTaskStakeholders(
+  task: { _id: unknown; title: string; assigneeId?: unknown; createdBy?: unknown },
+  actorId: string,
+  payload: { type: string; title: string; message: string },
+) {
+  const recipients = new Set<string>();
+  if (task.assigneeId) recipients.add(String(task.assigneeId));
+  if (task.createdBy) recipients.add(String(task.createdBy));
+  recipients.delete(actorId);
+  await Promise.all(
+    [...recipients].map((userId) =>
+      enqueueNotification({
+        userId,
+        type: payload.type,
+        title: payload.title,
+        message: payload.message,
+        entityType: 'Task',
+        entityId: String(task._id),
+      }),
+    ),
+  );
+}
+
 export const taskService = {
   async list(userId: string, boardId: string) {
     const { workspaceId } = await resolveTaskContext(boardId);
@@ -45,10 +69,19 @@ export const taskService = {
     return Task.find({ boardId }).sort({ position: 1 }).lean();
   },
 
+  async listByWorkspace(userId: string, workspaceId: string) {
+    await workspaceService.assertRole(userId, workspaceId, 'VIEWER');
+    const projects = await Project.find({ workspaceId }).select('_id').lean();
+    const projectIds = projects.map((p) => p._id);
+    if (!projectIds.length) return [];
+    return Task.find({ projectId: { $in: projectIds } }).sort({ updatedAt: -1 }).lean();
+  },
+
   async create(userId: string, boardId: string, input: CreateTaskInput, ip?: string) {
     const { board, workspaceId } = await resolveTaskContext(boardId);
     const role = await workspaceService.assertRole(userId, workspaceId, 'MEMBER');
     if (ROLE_RANK[role] < ROLE_RANK.MEMBER) throw new ForbiddenError();
+    await entitlementsService.assertCanCreateTask(workspaceId);
 
     const count = await Task.countDocuments({ boardId, status: input.status ?? 'TODO' });
     const task = await Task.create({
@@ -61,6 +94,7 @@ export const taskService = {
       position: count,
       assigneeId: input.assigneeId ?? null,
       dueDate: input.dueDate ? new Date(input.dueDate) : null,
+      labels: input.labels ?? [],
       createdBy: userId,
     });
 
@@ -115,6 +149,7 @@ export const taskService = {
     if (input.dueDate !== undefined) {
       task.dueDate = input.dueDate ? new Date(input.dueDate) : null;
     }
+    if (input.labels !== undefined) task.labels = input.labels;
 
     await task.save();
     await auditService.log({
@@ -125,6 +160,12 @@ export const taskService = {
       entityId: id,
       metadata: input,
       ip,
+    });
+
+    await notifyTaskStakeholders(task, userId, {
+      type: 'TASK_UPDATED',
+      title: 'Task updated',
+      message: `"${task.title}" was updated`,
     });
 
     const eventId = randomUUID();
@@ -165,6 +206,12 @@ export const taskService = {
       ip,
     });
 
+    await notifyTaskStakeholders(task, userId, {
+      type: 'TASK_UPDATED',
+      title: 'Task moved',
+      message: `"${task.title}" moved to ${input.status.replace('_', ' ')}`,
+    });
+
     const eventId = input.mutationId ?? randomUUID();
     emitBoard('task:moved', String(task.boardId), { eventId, mutationId: eventId, task });
     await invalidateAnalyticsCache(workspaceId);
@@ -187,6 +234,18 @@ export const taskService = {
       });
     }
 
+    const creatorId = task.createdBy ? String(task.createdBy) : '';
+    if (creatorId && creatorId !== userId && creatorId !== input.assigneeId) {
+      await enqueueNotification({
+        userId: creatorId,
+        type: 'TASK_UPDATED',
+        title: 'Task reassigned',
+        message: `"${task.title}" was reassigned`,
+        entityType: 'Task',
+        entityId: id,
+      });
+    }
+
     emitBoard('task:updated', String(task.boardId), { eventId: randomUUID(), task });
     await invalidateAnalyticsCache(workspaceId);
     return task;
@@ -195,15 +254,28 @@ export const taskService = {
   async addAttachment(
     userId: string,
     id: string,
-    file: { filename: string; originalname: string; mimetype: string; size: number; path: string },
+    file: {
+      filename: string;
+      originalname: string;
+      mimetype: string;
+      size: number;
+      path?: string;
+      key?: string;
+      bucket?: string | null;
+      provider?: 'local' | 's3';
+    },
   ) {
-    const { task } = await assertTaskAccess(userId, id, 'MEMBER');
+    const { task, workspaceId } = await assertTaskAccess(userId, id, 'MEMBER');
+    await entitlementsService.assertStorageAllowance(workspaceId, file.size);
     task.attachments.push({
       filename: file.filename,
       originalName: file.originalname,
       mimeType: file.mimetype,
       size: file.size,
-      path: file.path,
+      path: file.path ?? null,
+      key: file.key ?? file.filename,
+      bucket: file.bucket ?? null,
+      provider: file.provider ?? 'local',
       uploadedAt: new Date(),
     } as never);
     await task.save();

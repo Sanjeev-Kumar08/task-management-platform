@@ -26,4 +26,12 @@ export const commentController = {
       next(err);
     }
   },
+  async update(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await commentService.update(req.user!.id, req.params.id, req.body.content);
+      sendSuccess(res, data, 'Comment updated');
+    } catch (err) {
+      next(err);
+    }
+  },
 };

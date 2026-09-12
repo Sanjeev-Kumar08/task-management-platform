@@ -8,6 +8,8 @@ const notificationSchema = new Schema(
     message: { type: String, required: true },
     entityType: { type: String, default: null },
     entityId: { type: Schema.Types.ObjectId, default: null },
+    /** App-relative path (e.g. `/invite/…`) or absolute URL for click-through */
+    actionUrl: { type: String, default: null },
     read: { type: Boolean, default: false },
   },
   { timestamps: true },

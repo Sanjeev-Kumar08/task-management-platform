@@ -7,7 +7,7 @@ const auditLogSchema = new Schema(
     workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace', default: null },
     action: { type: String, enum: AUDIT_ACTIONS, required: true },
     entity: { type: String, required: true },
-    entityId: { type: Schema.Types.ObjectId, required: true },
+    entityId: { type: String, required: true },
     metadata: { type: Schema.Types.Mixed, default: {} },
     ip: { type: String, default: null },
   },
