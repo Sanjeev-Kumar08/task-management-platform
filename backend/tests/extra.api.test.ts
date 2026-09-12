@@ -13,11 +13,13 @@ describe('Comments, notifications, search, refresh', () => {
 
   beforeAll(async () => {
     app = createApp();
+    const email = `extra_${Date.now()}@example.com`;
     const reg = await request(app).post('/api/auth/register').send({
       name: 'Extra User',
-      email: 'extra@example.com',
+      email,
       password: 'Password123!',
     });
+    expect(reg.status).toBe(201);
     accessToken = reg.body.data.accessToken;
     const raw = reg.headers['set-cookie'];
     refreshCookie = Array.isArray(raw) ? raw[0] : (raw ?? '');
@@ -25,7 +27,8 @@ describe('Comments, notifications, search, refresh', () => {
     const ws = await request(app)
       .post('/api/workspaces')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ name: 'Extra WS', slug: 'extra-ws' });
+      .send({ name: 'Extra WS', slug: `extra-ws-${Date.now()}` });
+    expect(ws.status).toBe(201);
     workspaceId = ws.body.data._id;
 
     const projects = await request(app)
@@ -103,7 +106,9 @@ describe('Comments, notifications, search, refresh', () => {
     const list = await request(app)
       .get(`/api/channels/${channelId}/messages`)
       .set('Authorization', `Bearer ${accessToken}`);
-    expect(list.body.data.length).toBeGreaterThan(0);
+    expect(list.status).toBe(200);
+    const messages = list.body.data.items ?? list.body.data;
+    expect(messages.length).toBeGreaterThan(0);
   });
 
   it('updates profile and logs out', async () => {
