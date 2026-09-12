@@ -48,15 +48,18 @@ npm run seed
 
 ## Local development
 
-Prerequisites: Node 20+, MongoDB, Redis.
+Prerequisites: Node 20+, MongoDB (replica set for transactions), Redis.
 
 ```bash
 cp .env.example .env
 npm install
-# start Mongo + Redis (or use docker compose up mongodb redis -d)
+# start Mongo (replica set) + Redis — easiest via:
+docker compose up mongodb redis -d
 npm run seed
 npm run dev
 ```
+
+> Workspace creation uses MongoDB transactions, so Mongo must run as a replica set (`?replicaSet=rs0` in `MONGODB_URI`). The Docker Compose Mongo service is already configured this way.
 
 ## Environment variables
 
