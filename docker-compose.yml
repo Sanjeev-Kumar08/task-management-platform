@@ -2,15 +2,23 @@ services:
   mongodb:
     image: mongo:7
     restart: unless-stopped
+    command: ['--replSet', 'rs0', '--bind_ip_all']
     ports:
       - '27017:27017'
     volumes:
       - mongodb_data:/data/db
     healthcheck:
-      test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
+      test:
+        [
+          'CMD',
+          'mongosh',
+          '--eval',
+          "try { rs.status().ok } catch(e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongodb:27017'}]}).ok }",
+        ]
       interval: 10s
-      timeout: 5s
-      retries: 5
+      timeout: 10s
+      retries: 10
+      start_period: 20s
 
   redis:
     image: redis:7-alpine
@@ -35,7 +43,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
-      MONGODB_URI: mongodb://mongodb:27017/workspace
+      MONGODB_URI: mongodb://mongodb:27017/workspace?replicaSet=rs0
       REDIS_URL: redis://redis:6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-docker-access-secret-change-in-prod-32chars}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-docker-refresh-secret-change-in-prod-32chars}
