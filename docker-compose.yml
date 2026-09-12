@@ -13,7 +13,7 @@ services:
           'CMD',
           'mongosh',
           '--eval',
-          "try { rs.status().ok } catch(e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongodb:27017'}]}).ok }",
+          "try { rs.status().ok } catch(e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'127.0.0.1:27017'}]}).ok }",
         ]
       interval: 10s
       timeout: 10s
@@ -43,17 +43,35 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
-      MONGODB_URI: mongodb://mongodb:27017/workspace?replicaSet=rs0
+      MONGODB_URI: mongodb://host.docker.internal:27017/workspace?replicaSet=rs0
       REDIS_URL: redis://redis:6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-docker-access-secret-change-in-prod-32chars}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-docker-refresh-secret-change-in-prod-32chars}
       JWT_ACCESS_EXPIRES_IN: 15m
       JWT_REFRESH_EXPIRES_IN: 7d
-      CLIENT_URL: http://localhost:5173
+      CLIENT_URL: http://localhost:5173,http://localhost:5174
+      APP_URL: http://localhost:4000
       UPLOAD_DIR: uploads
       MAX_FILE_SIZE: 5242880
       COOKIE_SECURE: 'false'
       LOG_LEVEL: info
+      EMAIL_PROVIDER: console
+      STORAGE_PROVIDER: local
+      ERROR_TRACKER: console
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:4000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     volumes:
       - uploads_data:/app/uploads
     depends_on:
