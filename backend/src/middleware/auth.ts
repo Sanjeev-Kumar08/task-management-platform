@@ -20,10 +20,21 @@ export function authenticate(req: Request, _res: Response, next: NextFunction): 
   }
 }
 
-export function authorize(..._roles: string[]) {
-  return (_req: Request, _res: Response, next: NextFunction): void => {
-    // Placeholder for resource-agnostic checks; workspace role uses requireWorkspaceRole.
-    next();
+export function authorize(...roles: WorkspaceRole[]) {
+  return (req: Request, _res: Response, next: NextFunction): void => {
+    try {
+      if (!req.user) throw new UnauthorizedError();
+      if (!req.workspaceRole) {
+        throw new ForbiddenError('Workspace role context required');
+      }
+      const minRank = Math.min(...roles.map((r) => ROLE_RANK[r]));
+      if (ROLE_RANK[req.workspaceRole] < minRank) {
+        throw new ForbiddenError('Insufficient role');
+      }
+      next();
+    } catch (err) {
+      next(err);
+    }
   };
 }
 

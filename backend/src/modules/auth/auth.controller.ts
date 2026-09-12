@@ -27,7 +27,7 @@ function clearRefreshCookie(res: Response): void {
 export const authController = {
   async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await authService.register(req.body);
+      const result = await authService.register(req.body, req.get('user-agent') ?? undefined);
       setRefreshCookie(res, result.refreshToken);
       sendSuccess(
         res,
@@ -42,7 +42,7 @@ export const authController = {
 
   async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await authService.login(req.body);
+      const result = await authService.login(req.body, req.get('user-agent') ?? undefined);
       setRefreshCookie(res, result.refreshToken);
       sendSuccess(
         res,
@@ -96,6 +96,62 @@ export const authController = {
     try {
       const user = await authService.updateProfile(req.user!.id, req.body);
       sendSuccess(res, user, 'Profile updated');
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await authService.changePassword(req.user!.id, req.body);
+      clearRefreshCookie(res);
+      sendSuccess(res, null, 'Password changed. Please sign in again.');
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await authService.forgotPassword(req.body.email);
+      sendSuccess(res, null, 'If that email exists, a reset link was sent');
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await authService.resetPassword(req.body.token, req.body.password);
+      sendSuccess(res, null, 'Password reset successfully');
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async listSessions(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const sessions = await authService.listSessions(req.user!.id);
+      sendSuccess(res, sessions);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async revokeSession(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await authService.revokeSession(req.user!.id, req.params.sessionId);
+      sendSuccess(res, null, 'Session revoked');
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async deleteAccount(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await authService.deleteAccount(req.user!.id);
+      clearRefreshCookie(res);
+      sendSuccess(res, null, 'Account deleted');
     } catch (err) {
       next(err);
     }

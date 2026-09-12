@@ -5,6 +5,7 @@ import { getRedis } from '../../db/redis.js';
 import { UnauthorizedError } from '../../utils/errors.js';
 
 const REFRESH_PREFIX = 'auth:refresh:';
+const USER_SESSIONS_PREFIX = 'auth:user_sessions:';
 const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 export interface AccessTokenPayload {
@@ -21,7 +22,31 @@ export interface RefreshTokenPayload {
 
 interface SessionMeta {
   userId: string;
+  createdAt: string;
+  userAgent?: string;
   rotatedFrom?: string;
+}
+
+async function trackUserSession(userId: string, sessionId: string): Promise<void> {
+  const redis = getRedis();
+  await redis.sadd(`${USER_SESSIONS_PREFIX}${userId}`, sessionId);
+  await redis.expire(`${USER_SESSIONS_PREFIX}${userId}`, REFRESH_TTL_SECONDS);
+}
+
+async function untrackUserSession(userId: string, sessionId: string): Promise<void> {
+  await getRedis().srem(`${USER_SESSIONS_PREFIX}${userId}`, sessionId);
+}
+
+export async function invalidateAllUserSessions(userId: string): Promise<void> {
+  const redis = getRedis();
+  const key = `${USER_SESSIONS_PREFIX}${userId}`;
+  const sids = await redis.smembers(key);
+  if (sids.length) {
+    const pipeline = redis.pipeline();
+    for (const sid of sids) pipeline.del(`${REFRESH_PREFIX}${sid}`);
+    pipeline.del(key);
+    await pipeline.exec();
+  }
 }
 
 export function signAccessToken(payload: AccessTokenPayload): string {
@@ -38,10 +63,10 @@ export function verifyAccessToken(token: string): AccessTokenPayload {
   }
 }
 
-export async function createRefreshSession(userId: string): Promise<{
-  token: string;
-  sessionId: string;
-}> {
+export async function createRefreshSession(
+  userId: string,
+  userAgent?: string,
+): Promise<{ token: string; sessionId: string }> {
   const sessionId = uuidv4();
   const token = jwt.sign(
     { sub: userId, sid: sessionId, type: 'refresh' } satisfies RefreshTokenPayload,
@@ -49,13 +74,14 @@ export async function createRefreshSession(userId: string): Promise<{
     { expiresIn: env.JWT_REFRESH_EXPIRES_IN } as jwt.SignOptions,
   );
 
-  const meta: SessionMeta = { userId };
+  const meta: SessionMeta = { userId, createdAt: new Date().toISOString(), userAgent };
   await getRedis().set(
     `${REFRESH_PREFIX}${sessionId}`,
     JSON.stringify(meta),
     'EX',
     REFRESH_TTL_SECONDS,
   );
+  await trackUserSession(userId, sessionId);
 
   return { token, sessionId };
 }
@@ -81,8 +107,7 @@ export async function rotateRefreshSession(refreshToken: string): Promise<{
   const raw = await redis.get(key);
 
   if (!raw) {
-    // Possible reuse — invalidate any sibling sessions for this user by scanning is expensive;
-    // for assessment we invalidate the missing session and reject.
+    await invalidateAllUserSessions(payload.sub);
     throw new UnauthorizedError('Refresh session expired or reused');
   }
 
@@ -92,17 +117,21 @@ export async function rotateRefreshSession(refreshToken: string): Promise<{
   }
 
   await redis.del(key);
+  await untrackUserSession(payload.sub, payload.sid);
 
-  const { token: newRefresh, sessionId } = await createRefreshSession(payload.sub);
+  const { token: newRefresh, sessionId } = await createRefreshSession(payload.sub, meta.userAgent);
   await redis.set(
     `${REFRESH_PREFIX}${sessionId}`,
-    JSON.stringify({ userId: payload.sub, rotatedFrom: payload.sid } satisfies SessionMeta),
+    JSON.stringify({
+      userId: payload.sub,
+      createdAt: new Date().toISOString(),
+      userAgent: meta.userAgent,
+      rotatedFrom: payload.sid,
+    } satisfies SessionMeta),
     'EX',
     REFRESH_TTL_SECONDS,
   );
 
-  // Need user details for access token — caller should pass or we return userId only.
-  // Access token signed in auth service with user info.
   return { accessToken: '', refreshToken: newRefresh, userId: payload.sub };
 }
 
@@ -110,12 +139,40 @@ export async function invalidateRefreshSession(refreshToken: string): Promise<vo
   try {
     const payload = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET) as RefreshTokenPayload;
     await getRedis().del(`${REFRESH_PREFIX}${payload.sid}`);
+    await untrackUserSession(payload.sub, payload.sid);
   } catch {
     // ignore invalid token on logout
   }
 }
 
+export async function listUserSessions(userId: string): Promise<
+  Array<{ sessionId: string; createdAt: string; userAgent?: string }>
+> {
+  const redis = getRedis();
+  const sids = await redis.smembers(`${USER_SESSIONS_PREFIX}${userId}`);
+  const sessions: Array<{ sessionId: string; createdAt: string; userAgent?: string }> = [];
+  for (const sid of sids) {
+    const raw = await redis.get(`${REFRESH_PREFIX}${sid}`);
+    if (!raw) {
+      await untrackUserSession(userId, sid);
+      continue;
+    }
+    const meta = JSON.parse(raw) as SessionMeta;
+    sessions.push({ sessionId: sid, createdAt: meta.createdAt, userAgent: meta.userAgent });
+  }
+  return sessions;
+}
+
+export async function revokeUserSession(userId: string, sessionId: string): Promise<void> {
+  const redis = getRedis();
+  const raw = await redis.get(`${REFRESH_PREFIX}${sessionId}`);
+  if (!raw) return;
+  const meta = JSON.parse(raw) as SessionMeta;
+  if (meta.userId !== userId) throw new UnauthorizedError('Session does not belong to user');
+  await redis.del(`${REFRESH_PREFIX}${sessionId}`);
+  await untrackUserSession(userId, sessionId);
+}
+
 export async function cleanupExpiredSessions(): Promise<number> {
-  // Redis TTLs handle expiry; cleanup job reports 0 for intentional no-op scan cost.
   return 0;
 }
