@@ -33,10 +33,10 @@ export function WorkspaceSwitcher() {
 
   return (
     <>
-      <div className="flex h-9 items-center gap-1.5">
+      <div className="flex h-9 min-w-0 items-center gap-1 sm:gap-1.5">
         <Select
           size="sm"
-          className="max-w-[160px]"
+          className="min-w-0 flex-1"
           value={current?.id ?? ''}
           onChange={(e) => void onSwitch(e.target.value)}
           options={options}

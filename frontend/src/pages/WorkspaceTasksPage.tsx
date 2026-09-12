@@ -14,7 +14,7 @@ import { formatDate } from '@/utils/format';
 import { staggerContainer, staggerItem } from '@/lib/motion';
 
 const filterClass =
-  'h-10 rounded-xl border border-slate-200/90 bg-white px-3.5 text-sm shadow-sm transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900';
+  'h-10 w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3.5 text-sm text-slate-900 shadow-sm transition focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500/25 sm:w-auto dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
 
 const STATUSES: Array<'ALL' | Task['status']> = ['ALL', 'TODO', 'IN_PROGRESS', 'DONE'];
 const PRIORITIES: Array<'ALL' | Task['priority']> = ['ALL', 'LOW', 'MEDIUM', 'HIGH', 'URGENT'];
@@ -109,9 +109,9 @@ export function WorkspaceTasksPage() {
           <h1 className="font-display text-2xl font-semibold tracking-tight md:text-3xl">Tasks</h1>
           <p className="mt-1 text-sm text-slate-500">All tasks across workspace projects.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
           <Select
-            className="min-w-[148px]"
+            className="min-w-0 sm:min-w-[148px]"
             aria-label="Filter by status"
             value={filter}
             onChange={(e) => onStatusChange(e.target.value)}
@@ -123,7 +123,7 @@ export function WorkspaceTasksPage() {
             ]}
           />
           <Select
-            className="min-w-[148px]"
+            className="min-w-0 sm:min-w-[148px]"
             aria-label="Filter by priority"
             value={priorityFilter}
             onChange={(e) =>

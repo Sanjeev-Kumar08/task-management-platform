@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 import { resetPasswordSchema, type ResetPasswordFormValues } from '@/lib/validators';
 import * as authService from '@/services/auth.service';
 import { AuthShell } from '@/components/common/AuthShell';
@@ -39,18 +39,21 @@ export function ResetPasswordPage() {
   return (
     <AuthShell brandFirst title="Choose a new password" subtitle="Enter a new password for your account.">
       <form onSubmit={onSubmit} className="space-y-4" noValidate>
-        <Input
+        <PasswordInput
           label="New password"
-          type="password"
+          autoComplete="new-password"
           error={errors.password?.message}
           {...register('password')}
         />
-        <Input
+        <PasswordInput
           label="Confirm password"
-          type="password"
+          autoComplete="new-password"
           error={errors.confirmPassword?.message}
           {...register('confirmPassword')}
         />
+        <p className="text-xs text-slate-500">
+          Use 8+ characters with upper and lowercase letters, a number, and a special character.
+        </p>
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
         <Button type="submit" className="w-full" loading={isSubmitting}>
           Reset password

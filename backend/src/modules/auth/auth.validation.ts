@@ -1,9 +1,18 @@
 import { z } from 'zod';
 
+const strongPassword = z
+  .string()
+  .min(8)
+  .max(128)
+  .regex(/[a-z]/, 'Password must include a lowercase letter')
+  .regex(/[A-Z]/, 'Password must include an uppercase letter')
+  .regex(/[0-9]/, 'Password must include a number')
+  .regex(/[^A-Za-z0-9]/, 'Password must include a special character');
+
 export const registerSchema = z.object({
   name: z.string().min(2).max(100),
   email: z.string().email(),
-  password: z.string().min(8).max(128),
+  password: strongPassword,
 });
 
 export const loginSchema = z.object({
@@ -18,7 +27,7 @@ export const updateProfileSchema = z.object({
 
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1),
-  newPassword: z.string().min(8).max(128),
+  newPassword: strongPassword,
 });
 
 export const forgotPasswordSchema = z.object({
@@ -27,7 +36,7 @@ export const forgotPasswordSchema = z.object({
 
 export const resetPasswordSchema = z.object({
   token: z.string().min(10),
-  password: z.string().min(8).max(128),
+  password: strongPassword,
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;

@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/Input';
 import { useAuthStore } from '@/stores/authStore';
 import { confirmDialog, useUiStore } from '@/stores/uiStore';
 import * as authService from '@/services/auth.service';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 export function SettingsAccountPage() {
   const user = useAuthStore((s) => s.user);
@@ -58,7 +58,12 @@ export function SettingsAccountPage() {
     <div className="space-y-6">
       <div>
         <h2 className="font-display text-lg font-semibold">Account</h2>
-        <p className="text-sm text-slate-500">Your personal profile.</p>
+        <p className="text-sm text-slate-500">
+          Your personal profile.{' '}
+          <Link to="/profile" className="font-medium text-brand-800 hover:underline dark:text-brand-200">
+            Open full profile page
+          </Link>
+        </p>
       </div>
       <div className="space-y-4">
         <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} />

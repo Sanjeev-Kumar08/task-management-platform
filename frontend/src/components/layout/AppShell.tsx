@@ -24,7 +24,7 @@ export function AppShell() {
           <Sidebar mobileOpen={mobileNavOpen} onMobileClose={() => setMobileNavOpen(false)} />
           <div className="flex min-w-0 flex-1 flex-col">
             <Header onMenuClick={() => setMobileNavOpen(true)} />
-            <main className="min-h-0 flex-1 overflow-auto p-4 md:p-6 lg:p-8">
+            <main className="min-h-0 flex-1 overflow-auto p-3 sm:p-4 md:p-6 lg:p-8">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={location.pathname}
@@ -32,7 +32,7 @@ export function AppShell() {
                   initial="initial"
                   animate="animate"
                   exit="exit"
-                  className="mx-auto min-h-full w-full max-w-7xl"
+                  className="mx-auto flex min-h-full w-full max-w-7xl flex-col"
                 >
                   <Outlet />
                 </motion.div>

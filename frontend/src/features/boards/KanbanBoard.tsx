@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCorners,
   useSensor,
   useSensors,
@@ -33,7 +34,10 @@ export function KanbanBoard() {
   const [title, setTitle] = useState('');
   const [creating, setCreating] = useState(false);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+  );
 
   const byStatus = useMemo(() => {
     const map: Record<TaskStatus, Task[]> = { TODO: [], IN_PROGRESS: [], DONE: [] };
@@ -160,6 +164,7 @@ export function KanbanBoard() {
         sensors={sensors}
         collisionDetection={closestCorners}
         onDragStart={onDragStart}
+        onDragCancel={() => setActiveTask(null)}
         onDragEnd={(e) => void onDragEnd(e)}
       >
         <div

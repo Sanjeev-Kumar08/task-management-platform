@@ -11,7 +11,7 @@ interface AvatarProps {
 const sizes = {
   sm: 'h-7 w-7 text-[10px]',
   md: 'h-9 w-9 text-xs',
-  lg: 'h-11 w-11 text-sm',
+  lg: 'h-16 w-16 text-lg',
 };
 
 export function Avatar({ name, src, size = 'md', className }: AvatarProps) {

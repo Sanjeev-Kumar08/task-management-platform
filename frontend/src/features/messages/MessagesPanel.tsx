@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Hash, Pencil, Plus, Send, Trash2 } from 'lucide-react';
+import { ArrowLeft, Hash, Pencil, Plus, Send, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Avatar } from '@/components/ui/Avatar';
@@ -28,6 +28,7 @@ export function MessagesPanel({ workspaceId }: { workspaceId: string }) {
 
   const [channels, setChannels] = useState<Channel[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
   const [messages, setMessages] = useState<Message[]>([]);
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
@@ -46,6 +47,7 @@ export function MessagesPanel({ workspaceId }: { workspaceId: string }) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setMobileView('list');
     void loadChannels()
       .catch((err) => pushToast(err instanceof Error ? err.message : 'Failed to load channels', 'error'))
       .finally(() => {
@@ -92,6 +94,11 @@ export function MessagesPanel({ workspaceId }: { workspaceId: string }) {
 
   useChannelSocket(activeId ?? undefined, onMessage);
 
+  const selectChannel = (id: string) => {
+    setActiveId(id);
+    setMobileView('chat');
+  };
+
   const createChannel = async () => {
     if (!newChannel.trim()) return;
     try {
@@ -102,6 +109,7 @@ export function MessagesPanel({ workspaceId }: { workspaceId: string }) {
       const channel = normalizeId(created as Channel & { _id?: string });
       setChannels((prev) => [...prev, channel]);
       setActiveId(channel.id);
+      setMobileView('chat');
       setNewChannel('');
       pushToast('Channel created', 'success');
     } catch (err) {
@@ -122,6 +130,7 @@ export function MessagesPanel({ workspaceId }: { workspaceId: string }) {
       await channelService.archiveChannel(workspaceId, activeId);
       setChannels((prev) => prev.filter((c) => c.id !== activeId));
       setActiveId(null);
+      setMobileView('list');
       pushToast('Channel archived', 'success');
       await loadChannels();
     } catch (err) {
@@ -178,9 +187,16 @@ export function MessagesPanel({ workspaceId }: { workspaceId: string }) {
     return <p className="text-sm text-slate-500">Loading channels…</p>;
   }
 
+  const activeChannel = channels.find((c) => c.id === activeId);
+
   return (
-    <div className="flex h-[calc(100vh-10rem)] overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 shadow-soft dark:border-slate-800/80 dark:bg-slate-950/60">
-      <aside className="w-56 shrink-0 border-r border-slate-100 dark:border-slate-800/80">
+    <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-soft dark:border-slate-800/80 dark:bg-slate-950">
+      <aside
+        className={cn(
+          'w-full shrink-0 flex-col border-r border-slate-100 dark:border-slate-800/80 md:flex md:w-56 lg:w-64',
+          mobileView === 'chat' ? 'hidden' : 'flex',
+        )}
+      >
         <div className="border-b border-slate-100 px-3 py-3.5 dark:border-slate-800">
           <h2 className="text-sm font-semibold tracking-tight">Channels</h2>
         </div>
@@ -190,121 +206,149 @@ export function MessagesPanel({ workspaceId }: { workspaceId: string }) {
               value={newChannel}
               onChange={(e) => setNewChannel(e.target.value)}
               placeholder="New channel"
-              className="h-8 min-w-0 flex-1 rounded-lg border border-slate-200 px-2 text-xs shadow-sm dark:border-slate-700 dark:bg-slate-900"
+              className="h-8 min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-900 shadow-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
             />
             <button
               type="button"
               onClick={() => void createChannel()}
-              className="rounded-lg border border-slate-200 p-1.5 transition hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 p-1.5 transition hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
               aria-label="Create channel"
             >
               <Plus className="h-3.5 w-3.5" />
             </button>
           </div>
         ) : null}
-        {!channels.length ? (
-          <div className="p-3">
-            <EmptyState
-              icon={Hash}
-              title="No channels"
-              description={canManage ? 'Create one to start chatting.' : 'Ask an admin to create a channel.'}
-            />
-          </div>
-        ) : (
-          <ul className="p-2">
-            {channels.map((c) => (
-              <li key={c.id}>
-                <button
-                  type="button"
-                  onClick={() => setActiveId(c.id)}
-                  className={cn(
-                    'flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-sm transition hover:bg-slate-50 dark:hover:bg-slate-900',
-                    activeId === c.id &&
-                      'bg-brand-50 text-brand-800 dark:bg-brand-950/40 dark:text-brand-200',
-                  )}
-                >
-                  <Hash className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                  <span className="min-w-0 flex-1 truncate">{c.name}</span>
-                  {(c.unreadCount ?? 0) > 0 ? (
-                    <span className="rounded-md bg-brand-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                      {c.unreadCount}
-                    </span>
-                  ) : null}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {!channels.length ? (
+            <div className="p-3">
+              <EmptyState
+                icon={Hash}
+                title="No channels"
+                description={canManage ? 'Create one to start chatting.' : 'Ask an admin to create a channel.'}
+              />
+            </div>
+          ) : (
+            <ul className="p-2">
+              {channels.map((c) => (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    onClick={() => selectChannel(c.id)}
+                    className={cn(
+                      'flex w-full items-center gap-2 rounded-xl px-2.5 py-2.5 text-left text-sm transition hover:bg-slate-50 dark:hover:bg-slate-900',
+                      activeId === c.id &&
+                        'bg-brand-100 font-medium text-brand-900 dark:bg-brand-900/50 dark:text-brand-100',
+                    )}
+                  >
+                    <Hash className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                    <span className="min-w-0 flex-1 truncate">{c.name}</span>
+                    {(c.unreadCount ?? 0) > 0 ? (
+                      <span className="rounded-md bg-brand-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                        {c.unreadCount}
+                      </span>
+                    ) : null}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </aside>
-      <section className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
-          <h3 className="font-display font-semibold">
-            #{channels.find((c) => c.id === activeId)?.name ?? 'channel'}
-          </h3>
+
+      <section
+        className={cn(
+          'min-w-0 flex-1 flex-col',
+          mobileView === 'list' ? 'hidden md:flex' : 'flex',
+        )}
+      >
+        <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-3 py-3 dark:border-slate-800 sm:px-4">
+          <div className="flex min-w-0 items-center gap-2">
+            <button
+              type="button"
+              className="rounded-lg p-1.5 text-slate-600 transition hover:bg-slate-100 md:hidden dark:text-slate-300 dark:hover:bg-slate-800"
+              onClick={() => setMobileView('list')}
+              aria-label="Back to channels"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <h3 className="truncate font-display font-semibold">
+              #{activeChannel?.name ?? 'channel'}
+            </h3>
+          </div>
           {canManage && activeId ? (
             <Button size="sm" variant="ghost" onClick={() => void archiveActive()}>
               Archive
             </Button>
           ) : null}
         </div>
-        <div className="flex-1 space-y-3 overflow-y-auto p-4">
-          {messages.map((m) => {
-            const sender = asUserRef(m.senderId);
-            const isOwn = user && sender.id === user.id;
-            return (
-              <div key={m.id} className="flex gap-3">
-                <Avatar name={sender.name} src={sender.avatar} size="sm" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-sm font-semibold">{sender.name}</span>
-                    <span className="text-[11px] text-slate-400">
-                      {formatRelativeTime(m.createdAt)}
-                      {m.editedAt ? ' · edited' : ''}
-                    </span>
-                    {isOwn && !m.deletedAt ? (
-                      <span className="ml-auto flex gap-1">
-                        <button
-                          type="button"
-                          className="text-slate-400 hover:text-slate-600"
-                          onClick={() => {
-                            setEditingId(m.id);
-                            setEditContent(m.content);
-                          }}
-                          aria-label="Edit message"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          className="text-slate-400 hover:text-red-500"
-                          onClick={() => void remove(m.id)}
-                          aria-label="Delete message"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-3 sm:p-4">
+          {!activeId ? (
+            <EmptyState
+              icon={Hash}
+              title="Select a channel"
+              description="Pick a channel from the list to start chatting."
+            />
+          ) : (
+            messages.map((m) => {
+              const sender = asUserRef(m.senderId);
+              const isOwn = user && sender.id === user.id;
+              return (
+                <div key={m.id} className="flex gap-2.5 sm:gap-3">
+                  <Avatar name={sender.name} src={sender.avatar} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                      <span className="text-sm font-semibold">{sender.name}</span>
+                      <span className="text-[11px] text-slate-400">
+                        {formatRelativeTime(m.createdAt)}
+                        {m.editedAt ? ' · edited' : ''}
                       </span>
-                    ) : null}
-                  </div>
-                  {editingId === m.id ? (
-                    <div className="mt-1 flex gap-2">
-                      <input
-                        value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        className="h-8 flex-1 rounded border border-slate-200 px-2 text-sm dark:border-slate-700 dark:bg-slate-900"
-                      />
-                      <Button size="sm" onClick={() => void saveEdit(m.id)}>
-                        Save
-                      </Button>
+                      {isOwn && !m.deletedAt ? (
+                        <span className="ml-auto flex gap-1">
+                          <button
+                            type="button"
+                            className="text-slate-400 hover:text-slate-600"
+                            onClick={() => {
+                              setEditingId(m.id);
+                              setEditContent(m.content);
+                            }}
+                            aria-label="Edit message"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            className="text-slate-400 hover:text-red-500"
+                            onClick={() => void remove(m.id)}
+                            aria-label="Delete message"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </span>
+                      ) : null}
                     </div>
-                  ) : (
-                    <p className="text-sm text-slate-700 dark:text-slate-200">{m.content}</p>
-                  )}
+                    {editingId === m.id ? (
+                      <div className="mt-1 flex flex-col gap-2 sm:flex-row">
+                        <input
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          className="h-8 min-w-0 flex-1 rounded border border-slate-300 bg-white px-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+                        />
+                        <Button size="sm" onClick={() => void saveEdit(m.id)}>
+                          Save
+                        </Button>
+                      </div>
+                    ) : (
+                      <p className="break-words text-sm text-slate-700 dark:text-slate-200">{m.content}</p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
-        <div className="flex gap-2 border-t border-slate-100 p-3 dark:border-slate-800">
+
+        <div className="flex shrink-0 gap-2 border-t border-slate-100 p-2.5 dark:border-slate-800 sm:p-3">
           <input
             value={content}
             onChange={(e) => setContent(e.target.value)}
@@ -314,13 +358,18 @@ export function MessagesPanel({ workspaceId }: { workspaceId: string }) {
                 void send();
               }
             }}
-            placeholder={online ? 'Write a message… (@name to mention)' : 'Offline — queued on send'}
-            className="h-10 flex-1 rounded-xl border border-slate-200/90 bg-white px-3.5 text-sm shadow-sm transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900"
+            placeholder={online ? 'Write a message…' : 'Offline — queued on send'}
+            className="h-10 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 shadow-sm transition focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500/25 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
             disabled={!activeId}
           />
-          <Button loading={sending} onClick={() => void send()} disabled={!activeId}>
+          <Button
+            loading={sending}
+            onClick={() => void send()}
+            disabled={!activeId}
+            className="shrink-0 px-3 sm:px-4"
+          >
             <Send className="h-4 w-4" />
-            Send
+            <span className="hidden sm:inline">Send</span>
           </Button>
         </div>
       </section>

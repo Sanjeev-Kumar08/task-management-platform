@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { PasswordInput } from '@/components/ui/PasswordInput';
+import { strongPasswordSchema } from '@/lib/validators';
 import { useAuthStore } from '@/stores/authStore';
 import { useUiStore } from '@/stores/uiStore';
 import * as authService from '@/services/auth.service';
@@ -17,6 +18,11 @@ export function SettingsSecurityPage() {
   const [saving, setSaving] = useState(false);
   const [sessions, setSessions] = useState<AuthSession[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const newPasswordError = (() => {
+    if (!newPassword) return undefined;
+    const parsed = strongPasswordSchema.safeParse(newPassword);
+    return parsed.success ? undefined : parsed.error.issues[0]?.message;
+  })();
 
   const loadSessions = async () => {
     try {
@@ -31,6 +37,11 @@ export function SettingsSecurityPage() {
   }, []);
 
   const changePassword = async () => {
+    const parsed = strongPasswordSchema.safeParse(newPassword);
+    if (!parsed.success) {
+      pushToast(parsed.error.issues[0]?.message ?? 'Password is too weak', 'error');
+      return;
+    }
     setSaving(true);
     try {
       await authService.changePassword({ currentPassword, newPassword });
@@ -65,22 +76,26 @@ export function SettingsSecurityPage() {
       </div>
       <div className="space-y-3">
         <h3 className="text-sm font-semibold">Change password</h3>
-        <Input
+        <PasswordInput
           label="Current password"
-          type="password"
+          autoComplete="current-password"
           value={currentPassword}
           onChange={(e) => setCurrentPassword(e.target.value)}
         />
-        <Input
+        <PasswordInput
           label="New password"
-          type="password"
+          autoComplete="new-password"
           value={newPassword}
+          error={newPasswordError}
           onChange={(e) => setNewPassword(e.target.value)}
         />
+        <p className="text-xs text-slate-500">
+          Use 8+ characters with upper and lowercase letters, a number, and a special character.
+        </p>
         <Button
           onClick={() => void changePassword()}
           loading={saving}
-          disabled={!currentPassword || newPassword.length < 8}
+          disabled={!currentPassword || Boolean(newPasswordError) || !newPassword}
         >
           Update password
         </Button>

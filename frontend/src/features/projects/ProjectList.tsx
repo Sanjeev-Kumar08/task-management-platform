@@ -106,7 +106,7 @@ export function ProjectList({ workspaceId }: { workspaceId: string }) {
 
       <div className="flex flex-wrap gap-2">
         <input
-          className="h-10 min-w-[200px] flex-1 rounded-xl border border-slate-200/90 bg-white px-3.5 text-sm shadow-sm transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900"
+          className="h-10 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3.5 text-sm text-slate-900 shadow-sm transition focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500/25 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
           placeholder="Search projects…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}

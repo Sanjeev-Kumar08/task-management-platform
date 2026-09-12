@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 import { registerSchema, type RegisterFormValues } from '@/lib/validators';
 import { useAuthStore } from '@/stores/authStore';
 import { STORAGE_KEYS, writeJson } from '@/utils/storage';
@@ -50,13 +51,15 @@ export function RegisterForm() {
         error={errors.email?.message}
         {...register('email')}
       />
-      <Input
+      <PasswordInput
         label="Password"
-        type="password"
         autoComplete="new-password"
         error={errors.password?.message}
         {...register('password')}
       />
+      <p className="text-xs text-slate-500">
+        Use 8+ characters with upper and lowercase letters, a number, and a special character.
+      </p>
       {storeError ? (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/50 dark:text-red-300">
           {storeError}

@@ -39,6 +39,7 @@ export function setApiToastHandler(
 export const api: AxiosInstance = axios.create({
   baseURL: API_URL,
   withCredentials: true,
+  timeout: 20_000,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -80,6 +81,9 @@ function singleFlightRefresh(): Promise<string | null> {
 
 function extractError(error: AxiosError): ApiError {
   if (!error.response) {
+    if (error.code === 'ECONNABORTED') {
+      return new ApiError(0, 'TIMEOUT', 'Request timed out. Please try again.');
+    }
     return new ApiError(0, 'NETWORK_ERROR', 'Network error. Check your connection.');
   }
 
@@ -127,7 +131,11 @@ api.interceptors.response.use(
 
     const apiError = extractError(error);
 
-    if (apiError.code === 'NETWORK_ERROR' || [403, 422, 429, 500].includes(apiError.status)) {
+    if (
+      apiError.code === 'NETWORK_ERROR' ||
+      apiError.code === 'TIMEOUT' ||
+      [403, 422, 429, 500].includes(apiError.status)
+    ) {
       toastHandler?.(apiError.message, 'error');
     }
 

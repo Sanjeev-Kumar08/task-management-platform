@@ -256,12 +256,12 @@ export const Select = forwardRef<HTMLInputElement, SelectProps>(
           }}
           onKeyDown={onTriggerKeyDown}
           className={cn(
-            'group flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200/90 bg-white text-left text-sm text-slate-900 shadow-sm outline-none transition-[border-color,box-shadow,background-color,color] duration-200',
-            'hover:border-slate-300 hover:bg-slate-50/80',
-            'focus-visible:border-brand-500 focus-visible:ring-2 focus-visible:ring-brand-500/20',
+            'group flex w-full items-center justify-between gap-2 rounded-xl border border-slate-300 bg-white text-left text-sm text-slate-900 shadow-sm outline-none transition-[border-color,box-shadow,background-color,color] duration-200',
+            'hover:border-slate-400 hover:bg-slate-50',
+            'focus-visible:border-brand-600 focus-visible:ring-2 focus-visible:ring-brand-500/25',
             'disabled:cursor-not-allowed disabled:opacity-60',
-            'dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100 dark:hover:border-slate-600 dark:hover:bg-slate-900',
-            open && 'border-brand-500 ring-2 ring-brand-500/20',
+            'dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-slate-500 dark:hover:bg-slate-900',
+            open && 'border-brand-600 ring-2 ring-brand-500/25',
             error && 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20',
             size === 'sm' ? 'h-9 px-2.5' : 'h-10 px-3.5',
           )}
@@ -365,7 +365,7 @@ export const Select = forwardRef<HTMLInputElement, SelectProps>(
                               'disabled:cursor-not-allowed disabled:opacity-40',
                               isActive && !isSelected && 'bg-slate-100/90 dark:bg-slate-800/80',
                               isSelected &&
-                                'bg-brand-50 font-medium text-brand-800 dark:bg-brand-950/40 dark:text-brand-200',
+                                'bg-brand-100 font-medium text-brand-900 dark:bg-brand-900/60 dark:text-brand-100',
                               !isSelected &&
                                 !isActive &&
                                 'text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800/60',

@@ -19,6 +19,7 @@ import { SettingsInvitationsPage } from '@/pages/settings/SettingsInvitationsPag
 import { SettingsBillingPage } from '@/pages/settings/SettingsBillingPage';
 import { SettingsAccountPage } from '@/pages/settings/SettingsAccountPage';
 import { SettingsSecurityPage } from '@/pages/settings/SettingsSecurityPage';
+import { ProfilePage } from '@/pages/ProfilePage';
 
 export function AppRouter() {
   return (
@@ -36,6 +37,7 @@ export function AppRouter() {
         <Route element={<ProtectedRoute />}>
           <Route element={<AppShell />}>
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/workspaces/:workspaceId" element={<DashboardPage />} />
             <Route path="/workspaces/:workspaceId/projects" element={<WorkspaceProjectsPage />} />
             <Route path="/workspaces/:workspaceId/tasks" element={<WorkspaceTasksPage />} />

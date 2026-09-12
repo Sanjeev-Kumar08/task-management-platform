@@ -47,7 +47,7 @@ html.dark .app-mesh {
 }
 
 .app-panel {
-  @apply rounded-2xl border border-slate-200/80 bg-white/90 shadow-soft dark:border-slate-800/80 dark:bg-slate-950/50;
+  @apply rounded-2xl border border-slate-200 bg-white shadow-soft dark:border-slate-800 dark:bg-slate-950;
 }
 
 .app-panel-muted {
@@ -84,6 +84,36 @@ html.dark ::-webkit-scrollbar-thumb {
 html.dark ::selection {
   background: rgb(34 118 92 / 0.45);
   color: theme('colors.brand.100');
+}
+
+/* Prevent browser autofill from painting fields a washed-out green */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+  -webkit-text-fill-color: theme('colors.slate.900');
+  caret-color: theme('colors.slate.900');
+  box-shadow: 0 0 0 1000px #ffffff inset;
+  transition: background-color 99999s ease-in-out 0s;
+}
+
+html.dark input:-webkit-autofill,
+html.dark input:-webkit-autofill:hover,
+html.dark input:-webkit-autofill:focus,
+html.dark textarea:-webkit-autofill,
+html.dark textarea:-webkit-autofill:hover,
+html.dark textarea:-webkit-autofill:focus,
+html.dark select:-webkit-autofill,
+html.dark select:-webkit-autofill:hover,
+html.dark select:-webkit-autofill:focus {
+  -webkit-text-fill-color: theme('colors.slate.100');
+  caret-color: theme('colors.slate.100');
+  box-shadow: 0 0 0 1000px theme('colors.slate.900') inset;
 }
 
 /* Prefer reduced motion */

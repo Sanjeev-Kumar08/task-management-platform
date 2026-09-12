@@ -22,7 +22,7 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: (id: string) =>
       style={style}
       type="button"
       className={cn(
-        'w-full rounded-xl border border-slate-200/80 bg-white p-3 text-left shadow-sm transition duration-150 hover:border-slate-300 dark:border-slate-700/70 dark:bg-slate-950 dark:hover:border-slate-600',
+        'touch-none w-full rounded-xl border border-slate-200/80 bg-white p-3 text-left shadow-sm transition duration-150 hover:border-slate-300 dark:border-slate-700/70 dark:bg-slate-950 dark:hover:border-slate-600',
         isDragging && 'opacity-40 shadow-none ring-2 ring-brand-400/50',
       )}
       onClick={() => onOpen(task.id)}

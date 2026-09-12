@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 import { loginSchema, type LoginFormValues } from '@/lib/validators';
 import { useAuthStore } from '@/stores/authStore';
 import { STORAGE_KEYS, writeJson } from '@/utils/storage';
@@ -50,9 +51,8 @@ export function LoginForm() {
         error={errors.email?.message}
         {...register('email')}
       />
-      <Input
+      <PasswordInput
         label="Password"
-        type="password"
         autoComplete="current-password"
         error={errors.password?.message}
         {...register('password')}

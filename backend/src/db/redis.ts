@@ -114,11 +114,21 @@ export function getRedis(): RedisLike {
       redis = new MemoryRedis();
       return redis;
     }
+    // Finite retries + command timeout so auth/session calls fail fast instead of hanging
+    // forever when Docker port-forwarding or Redis itself is unhealthy.
     const client = new Redis(env.REDIS_URL, {
-      maxRetriesPerRequest: null,
+      maxRetriesPerRequest: 2,
+      connectTimeout: 5_000,
+      commandTimeout: 5_000,
+      enableOfflineQueue: false,
       enableReadyCheck: true,
+      retryStrategy(times) {
+        if (times > 20) return null;
+        return Math.min(times * 200, 2_000);
+      },
     });
     client.on('connect', () => logger.info('Redis connected'));
+    client.on('ready', () => logger.info('Redis ready'));
     client.on('error', (err: Error) => logger.error({ err }, 'Redis error'));
     redis = client as unknown as RedisLike;
   }

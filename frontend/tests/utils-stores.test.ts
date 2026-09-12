@@ -23,6 +23,24 @@ describe('validators', () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it('rejects register password missing complexity', () => {
+    const result = registerSchema.safeParse({
+      name: 'Ada',
+      email: 'ada@example.com',
+      password: 'password1',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts strong register password', () => {
+    const result = registerSchema.safeParse({
+      name: 'Ada',
+      email: 'ada@example.com',
+      password: 'Password123!',
+    });
+    expect(result.success).toBe(true);
+  });
 });
 
 describe('uiStore', () => {
